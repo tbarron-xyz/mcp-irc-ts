@@ -15,7 +15,7 @@ const argv = minimist(process.argv.slice(2));
 
 const client = new irc.Client(
     argv["url"] || 'irc.libera.chat',
-    (argv["nick"] + (argv["randomize-nick-suffix"] ? `${v4()}`.slice(0,6) : "")) || `mc${v4()}`.slice(0,10), {
+    (argv["nick"] ? argv["nick"] + (argv["randomize-nick-suffix"] ? `${v4()}`.slice(0,6) : "") : "") || `mc${v4()}`.slice(0,10), {
         channels: [],
         secure: true,
         port: argv["port"] || 6697,
