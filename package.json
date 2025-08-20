@@ -1,12 +1,12 @@
 {
   "name": "mcp-irc",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "license": "UNLICENSED",
   "author": "",
   "type": "module",
   "main": "index.ts",
-  "bin":{"mcp-irc":"index.ts"},
+  "bin":{"mcp-irc":"index.js"},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "run": "node index.ts"
