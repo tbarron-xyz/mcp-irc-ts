@@ -1,0 +1,29 @@
+{
+  "name": "mcp-irc-ts",
+  "version": "1.0.0",
+  "description": "",
+  "license": "UNLICENSED",
+  "author": "",
+  "type": "esm",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.3",
+    "@types/express": "^5.0.3",
+    "@types/irc": "^0.5.4",
+    "@types/minimist": "^1.2.5",
+    "express": "^5.1.0",
+    "irc": "^0.5.2",
+    "minimist": "^1.2.8",
+    "util": "^0.12.5",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "eslint": "^9.33.0",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.40.0"
+  }
+}
