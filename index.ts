@@ -27,7 +27,7 @@ client.addListener('message', function (from, to, message) {
     lastMessages.unshift({
         from: from, to: to, message: message, time: Date.now()
     });
-    lastMessages.splice(100);
+    lastMessages.splice(argv["n"] || 100);
     console.log(from + ' => ' + to + ': ' + message);
 });
 client.addListener('error', function(message) {
@@ -46,152 +46,172 @@ const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
 // Handle POST requests for client-to-server communication
 app.post('/mcp', async (req, res) => {
-  // Check for existing session ID
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
-  let transport: StreamableHTTPServerTransport;
+    // Check for existing session ID
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    let transport: StreamableHTTPServerTransport;
 
-  if (sessionId && transports[sessionId]) {
-    // Reuse existing transport
-    transport = transports[sessionId];
-  } else if (!sessionId && isInitializeRequest(req.body)) {
-    // New initialization request
-    transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => v4(),
-      onsessioninitialized: (sessionId) => {
-        // Store the transport by session ID
-        transports[sessionId] = transport;
-      },
-      // DNS rebinding protection is disabled by default for backwards compatibility. If you are running this server
-      // locally, make sure to set:
-      // enableDnsRebindingProtection: true,
-      // allowedHosts: ['127.0.0.1'],
-    });
-
-    // Clean up transport when closed
-    transport.onclose = () => {
-      if (transport.sessionId) {
-        delete transports[transport.sessionId];
-      }
-    };
-    const server = new McpServer({
-      name: "mcp-server-irc-client",
-      version: "1.0.0"
-    }, { capabilities: { tools: {}}});
-
-    // ... set up server resources, tools, and prompts ...
-
-    server.registerTool(
-        "getMessages",
-        {
-            description: "Get the last 10 messages",
-            inputSchema: {},
+    if (sessionId && transports[sessionId]) {
+        // Reuse existing transport
+        transport = transports[sessionId];
+    } else if (!sessionId && isInitializeRequest(req.body)) {
+        // New initialization request
+        transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => v4(),
+        onsessioninitialized: (sessionId) => {
+            // Store the transport by session ID
+            transports[sessionId] = transport;
         },
-        async ({ }) => {
-            return {
-            content: [
-                {
-                    type: "text",
-                    text: JSON.stringify(lastMessages),
-                },
-            ],
-            };
+        // DNS rebinding protection is disabled by default for backwards compatibility. If you are running this server
+        // locally, make sure to set:
+        // enableDnsRebindingProtection: true,
+        // allowedHosts: ['127.0.0.1'],
+        });
+
+        // Clean up transport when closed
+        transport.onclose = () => {
+        if (transport.sessionId) {
+            delete transports[transport.sessionId];
         }
-    );
-    server.registerTool(
-        "sendRaw",
-        {
-            description: "Send a raw message to the server",
-            inputSchema: {
-                cmd: z.string().describe("command"),
-                arg1: z.string().describe("arg1"),
-                arg2: z.string().optional().describe("arg2")
+        };
+        const server = new McpServer({
+        name: "mcp-server-irc-client",
+        version: "1.0.0"
+        }, { capabilities: { tools: {}}});
+
+        // ... set up server resources, tools, and prompts ...
+
+        server.registerTool(
+            "getMessages",
+            {
+                description: "Get the last 10 messages",
+                inputSchema: {},
             },
-        },
-        async ({ cmd, arg1, arg2 }) => {
-            client.send(cmd, arg1, arg2 || "");
-            return {
-            content: [
-                {
-                    type: "text",
-                    text: "Done",
+            async ({ }) => {
+                return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(lastMessages),
+                    },
+                ],
+                };
+            }
+        );
+        server.registerTool(
+            "sendRaw",
+            {
+                description: "Send a raw message to the server",
+                inputSchema: {
+                    cmd: z.string().describe("command"),
+                    arg1: z.string().describe("arg1"),
+                    arg2: z.string().optional().describe("arg2")
                 },
-            ],
-            };
-        }
-    );
-    server.registerTool(
-        "join",
-        {
-            description: "Join a channel",
-            inputSchema: {
-                channel: z.string().describe("channel"),
             },
-        },
-        async ({ channel }) => {
-            client.join(channel);
-            return {
-            content: [
-                {
-                    type: "text",
-                    text: "Done",
+            async ({ cmd, arg1, arg2 }) => {
+                client.send(cmd, arg1, arg2 || "");
+                return {
+                content: [
+                    {
+                        type: "text",
+                        text: "Done",
+                    },
+                ],
+                };
+            }
+        );
+        server.registerTool(
+            "join",
+            {
+                description: "Join a channel",
+                inputSchema: {
+                    channel: z.string().describe("channel"),
                 },
-            ],
-            };
-        }
-    );
-    server.registerTool(
-        "privmsg",
-        {
-            description: "Send a message to a channel or DM a user",
-            inputSchema: {
-                target: z.string().describe("channel or user"),
-                message: z.string().describe("the message")
             },
-        },
-        async ({ target, message }) => {
-            client.say(target, message);
-            return {
-            content: [
-                {
-                    type: "text",
-                    text: "Done",
+            async ({ channel }) => {
+                client.join(channel);
+                return {
+                content: [
+                    {
+                        type: "text",
+                        text: "Done",
+                    },
+                ],
+                };
+            }
+        );
+        server.registerTool(
+            "part",
+            {
+                description: "Leave a channel",
+                inputSchema: {
+                    channel: z.string().describe("channel"),
                 },
-            ],
-            };
-        }
-    );
-    server.registerTool(
-        "channels",
-        {
-            description: "Get the current channel data, including user list",
-            inputSchema: { },
-        },
-        async ({ }) => {
-            return {
-            content: [
-                {
-                    type: "text",
-                    text: JSON.stringify(client.chans),
+            },
+            async ({ channel }) => {
+                client.part(channel, "", ()=>{});
+                return {
+                content: [
+                    {
+                        type: "text",
+                        text: "Done",
+                    },
+                ],
+                };
+            }
+        );
+        server.registerTool(
+            "privmsg",
+            {
+                description: "Send a message to a channel or DM a user",
+                inputSchema: {
+                    target: z.string().describe("channel or user"),
+                    message: z.string().describe("the message")
                 },
-            ],
-            };
-        }
-    );
+            },
+            async ({ target, message }) => {
+                client.say(target, message);
+                return {
+                content: [
+                    {
+                        type: "text",
+                        text: "Done",
+                    },
+                ],
+                };
+            }
+        );
+        server.registerTool(
+            "channels",
+            {
+                description: "Get the current channel data, including user list",
+                inputSchema: { },
+            },
+            async ({ }) => {
+                return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(client.chans),
+                    },
+                ],
+                };
+            }
+        );
 
-    // Connect to the MCP server
-    await server.connect(transport);
-  } else {
-    // Invalid request
-    res.status(400).json({
-      jsonrpc: '2.0',
-      error: {
-        code: -32000,
-        message: 'Bad Request: No valid session ID provided',
-      },
-      id: null,
-    });
-    return;
-  }
+        // Connect to the MCP server
+        await server.connect(transport);
+    } else {
+        // Invalid request
+        res.status(400).json({
+        jsonrpc: '2.0',
+        error: {
+            code: -32000,
+            message: 'Bad Request: No valid session ID provided',
+        },
+        id: null,
+        });
+        return;
+    }
 
   // Handle the request
   await transport.handleRequest(req, res, req.body);
