@@ -4,7 +4,7 @@ MCP Server as IRC Client in Typescript. Allows an MCP client to talk to the worl
 # Launching the MCP server and IRC Client
 
 ```
-node index.ts --url irc.libera.chat --port 6697 --mcpPort 3000 --nick mc --randomize-nick-suffix -n 1000
+npx mcp-irc --url irc.libera.chat --port 6697 --mcpPort 3000 --nick mc --randomize-nick-suffix -n 1000
 ```
 Given no args, it connects to an IRC server at `ircs://irc.libera.chat:6697/` and serves an MCP server at port 3000.
 
