@@ -13,13 +13,15 @@ import minimist from 'minimist';
 
 const argv = minimist(process.argv.slice(2));
 
-const client = new irc.Client(argv["url"] || 'irc.libera.chat', `mc${v4()}`.slice(0,10), {
-    channels: [],
-	secure: true,
-    port: argv["port"] || 6697,
-    autoConnect: false
-});
-const lastMessages: any[] = [];
+const client = new irc.Client(
+    argv["url"] || 'irc.libera.chat',
+    (argv["nick"] + (argv["randomize-nick-suffix"] ? `${v4()}`.slice(0,6) : "")) || `mc${v4()}`.slice(0,10), {
+        channels: [],
+        secure: true,
+        port: argv["port"] || 6697,
+        autoConnect: false
+    });
+const lastMessages: {}[] = []; // this could be redis
 
 client.addListener('message', function (from, to, message) {
     lastMessages.unshift({
@@ -137,7 +139,7 @@ app.post('/mcp', async (req, res) => {
             };
         }
     );
-        server.registerTool(
+    server.registerTool(
         "privmsg",
         {
             description: "Send a message to a channel or DM a user",
@@ -153,6 +155,23 @@ app.post('/mcp', async (req, res) => {
                 {
                     type: "text",
                     text: "Done",
+                },
+            ],
+            };
+        }
+    );
+    server.registerTool(
+        "channels",
+        {
+            description: "Get the current channel data, including user list",
+            inputSchema: { },
+        },
+        async ({ }) => {
+            return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify(client.chans),
                 },
             ],
             };
@@ -196,4 +215,4 @@ app.get('/mcp', handleSessionRequest);
 // Handle DELETE requests for session termination
 app.delete('/mcp', handleSessionRequest);
 console.log("listening");
-app.listen(3000);
+app.listen(argv["mcpPort"] || 3000);
